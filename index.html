@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Canal Esportivo Ao Vivo</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    font-family:Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    color:#fff;
+    background:url('https://elements-resized.envatousercontent.com/elements-video-cover-images/files/42f5c68d-7442-4a7a-a376-db8d1183b3be/inline_image_preview.jpg?w=500&cf_fit=cover&q=85&format=auto&s=2ccd2e87dd02d608ca92719de65622b4392d194a1c95da122a8114f871ccea68') center/cover no-repeat fixed;
+    position:relative;
+}
+body::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.65);
+}
+.container{
+    position:relative;
+    z-index:2;
+    width:95%;
+    max-width:900px;
+    text-align:center;
+}
+h1{
+    margin-bottom:15px;
+    font-size:28px;
+    text-shadow:0 0 10px #000;
+}
+.player-box{
+    backdrop-filter:blur(8px);
+    background:rgba(0,0,0,.45);
+    padding:15px;
+    border-radius:18px;
+    box-shadow:0 0 25px rgba(0,0,0,.6);
+}
+video{
+    width:100%;
+    border-radius:14px;
+    background:#000;
+}
+.espera{
+    margin-top:18px;
+    font-size:22px;
+    font-weight:bold;
+    animation:pulse 1.5s infinite;
+}
+.bola{
+    font-size:42px;
+    display:inline-block;
+    margin-top:10px;
+    animation:girar 2s linear infinite;
+}
+@keyframes girar{
+    from{transform:rotate(0)}
+    to{transform:rotate(360deg)}
+}
+@keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:.4}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 SPORT LIVE CHANNEL</h1>
+    
+    <div class="player-box">
+        <video id="video" controls autoplay muted playsinline></video>
+    </div>
+
+    <div class="espera">Logo vai começar a partida</div>
+    <div class="bola">⚽</div>
+</div>
+
+<script>
+const video = document.getElementById("video");
+let hls;
+const link = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+
+function iniciarPlayer(url){
+    if(Hls.isSupported() && url.includes(".m3u8")){
+        hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            video.play();
+        });
+    }else{
+        video.src = url;
+        video.play();
+    }
+}
+
+iniciarPlayer(link);
+</script>
+
+</body>
+</html>
