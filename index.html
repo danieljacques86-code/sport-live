@@ -64,14 +64,20 @@
   .offline-overlay.show{display:flex}
   .offline-overlay .ico{font-size:48px}
 
-  /* ===== Telegram CTA ===== */
-  .telegram-box{margin-top:18px;padding:16px;border-radius:14px;text-align:center;
-    background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3)}
-  .telegram-box p{color:var(--muted);font-size:13px;margin-bottom:10px}
-  .btn-tg{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:999px;
-    background:#229ED9;color:#fff;text-decoration:none;font-weight:700;font-size:15px;
-    transition:transform .2s,box-shadow .2s;box-shadow:0 8px 20px rgba(34,158,217,.4)}
-  .btn-tg:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(34,158,217,.6)}
+  /* ===== CTA Box ===== */
+  .cta-box{margin-top:18px;padding:18px;border-radius:14px;text-align:center;
+    background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25)}
+  .cta-box p{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;
+    text-decoration:none;font-weight:700;font-size:14px;
+    transition:transform .2s,box-shadow .2s;white-space:nowrap}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-tg{background:#229ED9;color:#fff;box-shadow:0 8px 20px rgba(34,158,217,.4)}
+  .btn-tg:hover{box-shadow:0 12px 28px rgba(34,158,217,.6)}
+  .btn-premium{background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#0a1438;
+    box-shadow:0 8px 20px rgba(255,208,0,.5)}
+  .btn-premium:hover{box-shadow:0 12px 30px rgba(255,208,0,.75)}
 
   /* ===== Lista de canais (Dropbox) ===== */
   .channels{margin-top:20px;padding:20px;border-radius:22px;
@@ -113,7 +119,7 @@
 </head>
 <body>
 
-<!-- Intro com música tema -->
+<!-- Intro -->
 <div class="intro" id="intro">
   <div class="intro-logo">⚽</div>
   <h1>SPORT LIVE</h1>
@@ -149,11 +155,17 @@
       </div>
     </div>
 
-    <div class="telegram-box">
-      <p>📢 Receba avisos de jogos e links exclusivos</p>
-      <a class="btn-tg" href="https://t.me/+RQf6jvKUMPo4YjVh" target="_blank" rel="noopener">
-        ✈️ Entrar no Grupo do Telegram
-      </a>
+    <!-- CTAs: Telegram + PREMIUM -->
+    <div class="cta-box">
+      <p>📢 Receba avisos de jogos e acesse conteúdos exclusivos</p>
+      <div class="cta-row">
+        <a class="btn btn-tg" href="https://t.me/+RQf6jvKUMPo4YjVh" target="_blank" rel="noopener">
+          ✈️ Entrar no Grupo do Telegram
+        </a>
+        <a class="btn btn-premium" href="http://vouver.me/index.php?page=login" target="_blank" rel="noopener">
+          👑 Entrar como Usuário PREMIUM
+        </a>
+      </div>
     </div>
   </section>
 
@@ -175,6 +187,7 @@
   // ====== CONFIG ======
   const PLAYLIST_URL = 'https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=8ixfgfxq';
   const TELEGRAM_URL = 'https://t.me/+RQf6jvKUMPo4YjVh';
+  const PREMIUM_URL  = 'http://vouver.me/index.php?page=login';
 
   // ====== INTRO + ÁUDIO ======
   const intro = document.getElementById('intro');
@@ -219,13 +232,15 @@
     video.removeAttribute('src');
     video.load();
 
-    if (Hls.isSupported() && /\.m3u8(\?|$)/i.test(url)) {
+    const isHls = /\.m3u8(\?|$)/i.test(url);
+
+    if (isHls && Hls.isSupported()) {
       hls = new Hls({ lowLatencyMode: true });
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(()=>{}); setStatus('live'); });
       hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) setStatus('offline'); });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl') && /\.m3u8(\?|$)/i.test(url)) {
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
       video.addEventListener('loadedmetadata', () => setStatus('live'), { once: true });
       video.addEventListener('error', () => setStatus('offline'), { once: true });
@@ -302,7 +317,6 @@
           playStream(ch.url, ch.name);
         };
         listEl.appendChild(card);
-        // Auto-play primeiro canal
         if (i === 0) setTimeout(() => card.click(), 500);
       });
     })
