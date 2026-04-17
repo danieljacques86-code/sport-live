@@ -113,7 +113,7 @@
 </head>
 <body>
 
-<!-- Intro com música tema Champions -->
+<!-- Intro com música tema -->
 <div class="intro" id="intro">
   <div class="intro-logo">⚽</div>
   <h1>SPORT LIVE</h1>
@@ -151,7 +151,7 @@
 
     <div class="telegram-box">
       <p>📢 Receba avisos de jogos e links exclusivos</p>
-      <a class="btn-tg" href="https://t.me/sportlivepremium" target="_blank" rel="noopener">
+      <a class="btn-tg" href="https://t.me/+RQf6jvKUMPo4YjVh" target="_blank" rel="noopener">
         ✈️ Entrar no Grupo do Telegram
       </a>
     </div>
@@ -174,6 +174,7 @@
 <script>
   // ====== CONFIG ======
   const PLAYLIST_URL = 'https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=8ixfgfxq';
+  const TELEGRAM_URL = 'https://t.me/+RQf6jvKUMPo4YjVh';
 
   // ====== INTRO + ÁUDIO ======
   const intro = document.getElementById('intro');
@@ -218,19 +219,19 @@
     video.removeAttribute('src');
     video.load();
 
-    if (Hls.isSupported()) {
+    if (Hls.isSupported() && /\.m3u8(\?|$)/i.test(url)) {
       hls = new Hls({ lowLatencyMode: true });
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(()=>{}); setStatus('live'); });
       hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) setStatus('offline'); });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video.canPlayType('application/vnd.apple.mpegurl') && /\.m3u8(\?|$)/i.test(url)) {
       video.src = url;
       video.addEventListener('loadedmetadata', () => setStatus('live'), { once: true });
       video.addEventListener('error', () => setStatus('offline'), { once: true });
       video.play().catch(()=>{});
     } else {
-      // MP4 fallback
+      // MP4 / web fallback
       video.src = url;
       video.play().then(() => setStatus('live')).catch(() => setStatus('offline'));
     }
