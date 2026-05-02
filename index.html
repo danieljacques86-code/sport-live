@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>IPTV Player PRO</title>
+<title>IPTV Player PRO+</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -13,11 +13,9 @@ body {
     color:#fff;
 }
 
-/* 🎥 VIDEO DE FUNDO */
+/* VIDEO FUNDO */
 #bgVideo {
     position:fixed;
-    top:0;
-    left:0;
     width:100%;
     height:100%;
     object-fit:cover;
@@ -25,7 +23,6 @@ body {
     opacity:0.25;
 }
 
-/* OVERLAY ESCURO */
 .overlay {
     position:fixed;
     width:100%;
@@ -41,6 +38,16 @@ header {
     font-size:20px;
 }
 
+/* BUSCA */
+#busca {
+    width:95%;
+    margin:10px;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
 /* PLAYER */
 video#video {
     width:100%;
@@ -48,28 +55,18 @@ video#video {
     background:black;
 }
 
-/* LISTA */
-#lista {
-    padding:10px;
-}
-
 /* CATEGORIA */
 .categoria {
-    background:#1a1a1a;
-    margin-bottom:10px;
+    margin:10px;
     border-radius:8px;
-    overflow:hidden;
+    background:#1a1a1a;
 }
 
 .cat-titulo {
     padding:12px;
+    background:#222;
     cursor:pointer;
     font-weight:bold;
-    background:#222;
-}
-
-.cat-titulo:hover {
-    background:#333;
 }
 
 .canais {
@@ -77,13 +74,24 @@ video#video {
     padding:10px;
 }
 
-/* CANAIS */
+/* CANAL */
 .canal {
+    display:flex;
+    align-items:center;
+    gap:10px;
     background:#2a2a2a;
     margin:5px;
-    padding:10px;
+    padding:8px;
     border-radius:6px;
     cursor:pointer;
+}
+
+.canal img {
+    width:40px;
+    height:40px;
+    object-fit:contain;
+    background:#000;
+    border-radius:5px;
 }
 
 .canal:hover {
@@ -94,14 +102,15 @@ video#video {
 
 <body>
 
-<!-- 🎥 VIDEO FUNDO -->
 <video id="bgVideo" autoplay muted loop>
-    <source src="https://cdn.pixabay.com/video/2016/09/13/5156-183300188_tiny.mp4" type="video/mp4">
+<source src="https://cdn.pixabay.com/video/2016/09/13/5156-183300188_tiny.mp4">
 </video>
 
 <div class="overlay"></div>
 
-<header>📺 IPTV Player PRO</header>
+<header>📺 IPTV Player PRO+</header>
+
+<input type="text" id="busca" placeholder="🔍 Buscar canal...">
 
 <video id="video" controls></video>
 
@@ -109,8 +118,9 @@ video#video {
 
 <script>
 
-// 🔥 SUA LISTA
 const url = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=kup5bytz&dl=0";
+
+let canaisGlobais = [];
 
 // PLAYER
 function play(url) {
@@ -125,7 +135,7 @@ function play(url) {
     }
 }
 
-// 🔥 CONVERTER M3U COM CATEGORIA
+// PARSE M3U
 function parseM3U(text) {
     const linhas = text.split("\n");
     let lista = [];
@@ -138,10 +148,10 @@ function parseM3U(text) {
 
             const nome = linha.split(",")[1];
 
-            const grupoMatch = linha.match(/group-title="(.*?)"/);
-            const grupo = grupoMatch ? grupoMatch[1] : "Outros";
+            const grupo = (linha.match(/group-title="(.*?)"/) || [])[1] || "Outros";
+            const logo = (linha.match(/tvg-logo="(.*?)"/) || [])[1] || "";
 
-            canal = { nome, grupo };
+            canal = { nome, grupo, logo };
 
         } 
         else if (linha.startsWith("http")) {
@@ -153,34 +163,28 @@ function parseM3U(text) {
     return lista;
 }
 
-// 🔥 ORGANIZAR POR CATEGORIA
-function agruparPorCategoria(canais) {
+// AGRUPAR
+function agrupar(canais) {
     const grupos = {};
-
     canais.forEach(c => {
-        if (!grupos[c.grupo]) {
-            grupos[c.grupo] = [];
-        }
+        if (!grupos[c.grupo]) grupos[c.grupo] = [];
         grupos[c.grupo].push(c);
     });
-
     return grupos;
 }
 
-// 🔥 RENDER
-fetch(url)
-.then(res => res.text())
-.then(text => {
-
-    const canais = parseM3U(text);
-    const grupos = agruparPorCategoria(canais);
+// RENDER
+function render(canais) {
 
     const listaDiv = document.getElementById("lista");
+    listaDiv.innerHTML = "";
+
+    const grupos = agrupar(canais);
 
     Object.keys(grupos).forEach(nomeGrupo => {
 
-        const categoriaDiv = document.createElement("div");
-        categoriaDiv.className = "categoria";
+        const cat = document.createElement("div");
+        cat.className = "categoria";
 
         const titulo = document.createElement("div");
         titulo.className = "cat-titulo";
@@ -189,30 +193,48 @@ fetch(url)
         const canaisDiv = document.createElement("div");
         canaisDiv.className = "canais";
 
-        // Toggle abrir/fechar
         titulo.onclick = () => {
             canaisDiv.style.display = canaisDiv.style.display === "block" ? "none" : "block";
         };
 
         grupos[nomeGrupo].forEach(c => {
+
             const div = document.createElement("div");
             div.className = "canal";
-            div.innerText = c.nome;
+
+            div.innerHTML = `
+                <img src="${c.logo || 'https://via.placeholder.com/40'}">
+                <span>${c.nome}</span>
+            `;
 
             div.onclick = () => play(c.url);
 
             canaisDiv.appendChild(div);
         });
 
-        categoriaDiv.appendChild(titulo);
-        categoriaDiv.appendChild(canaisDiv);
-
-        listaDiv.appendChild(categoriaDiv);
+        cat.appendChild(titulo);
+        cat.appendChild(canaisDiv);
+        listaDiv.appendChild(cat);
     });
+}
 
-})
-.catch(err => {
-    document.body.innerHTML += "<p>Erro ao carregar lista</p>";
+// BUSCA
+document.getElementById("busca").addEventListener("input", function() {
+    const termo = this.value.toLowerCase();
+
+    const filtrados = canaisGlobais.filter(c =>
+        c.nome.toLowerCase().includes(termo)
+    );
+
+    render(filtrados);
+});
+
+// CARREGAR
+fetch(url)
+.then(res => res.text())
+.then(text => {
+    canaisGlobais = parseM3U(text);
+    render(canaisGlobais);
 });
 
 </script>
