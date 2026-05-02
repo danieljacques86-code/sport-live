@@ -106,10 +106,10 @@
     <div id="lista"></div>
 
     <script>
-        // 🔥 SUA NOVA LISTA M3U (com proxy)
-        const urlM3U = "http://srvf.me/guu49779/d33282wzp";
+        // 🔥 SUA NOVA FONTE M3U_PLUS (output=ts)
+        const urlM3U = "http://simweb.top/get.php?username=guu49779&password=d33282wzp&type=m3u_plus&output=ts";
 
-        // URL do EPG (opcional, se quiser usar em outro lugar)
+        // URL do EPG (opcional, se quiser usar depois)
         const urlEPG = "http://epg.pfast5000.com";
 
         // PLAYER
@@ -126,11 +126,11 @@
                 alert('HLS não suportado neste navegador.');
             }
 
-            // Exibir EPG em console (apenas exemplo)
+            // Exibir EPG em console (exemplo)
             console.log('EPG carregado de:', urlEPG);
         }
 
-        // CONVERTER M3U para lista de canais
+        // CONVERTER M3U (também funciona com m3u_plus)
         function parseM3U(text) {
             const linhas = text.split('
 ');
@@ -153,12 +153,17 @@
             return lista;
         }
 
-        // CARREGAR LISTA M3U
+        // CARREGAR LISTA M3U_PLUS
         fetch(urlM3U)
             .then(res => res.text())
             .then(text => {
                 const canais = parseM3U(text);
                 const listaDiv = document.getElementById('lista');
+
+                if (canais.length === 0) {
+                    listaDiv.innerHTML = '<p>Nenhum canal encontrado na lista.</p>';
+                    return;
+                }
 
                 canais.forEach(c => {
                     const div = document.createElement('div');
