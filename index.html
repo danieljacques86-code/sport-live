@@ -10,51 +10,23 @@
 body {
     margin:0;
     font-family:Arial;
-    background:#0a2a5e;
+    background:#000;
     color:#fff;
-}
-
-/* HOME */
-#home {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
-
-.menu {
-    display:flex;
-    gap:20px;
-}
-
-.card {
-    width:180px;
-    height:120px;
-    border:2px solid rgba(255,255,255,0.4);
-    border-radius:12px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    cursor:pointer;
-}
-
-/* PLAYER */
-#playerScreen {
-    display:none;
-    height:100vh;
 }
 
 .container {
     display:flex;
-    height:100%;
+    height:100vh;
 }
 
+/* SIDEBAR */
 .sidebar {
     width:300px;
     background:#111;
     overflow:auto;
 }
 
+/* PLAYER */
 .player {
     flex:1;
 }
@@ -65,56 +37,50 @@ video {
     background:black;
 }
 
-.canal {
+/* CATEGORIA */
+.cat {
     padding:10px;
+    background:#222;
+    cursor:pointer;
+}
+
+/* CANAL */
+.canal {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px;
     border-bottom:1px solid #333;
     cursor:pointer;
 }
 
-.canal:hover {
-    background:#333;
+.canal img {
+    width:35px;
+    height:35px;
+    background:#000;
+    border-radius:5px;
 }
 
-.categoria {
-    background:#222;
-    padding:10px;
-    cursor:pointer;
+.canal:hover {
+    background:#333;
 }
 </style>
 </head>
 
 <body>
 
-<!-- HOME -->
-<div id="home">
-    <div class="menu">
-        <div class="card" onclick="abrirLive()">📺 LIVE TV</div>
-    </div>
-</div>
+<div class="container">
+    <div class="sidebar" id="lista"></div>
 
-<!-- PLAYER -->
-<div id="playerScreen">
-    <div class="container">
-        <div class="sidebar" id="lista"></div>
-        <div class="player">
-            <video id="video" controls></video>
-        </div>
+    <div class="player">
+        <video id="video" controls></video>
     </div>
 </div>
 
 <script>
 
-// 🔥 COLOQUE SEUS DADOS AQUI
-const server = "http://SEU_SERVIDOR:80";
-const user = "SEU_USUARIO";
-const pass = "SUA_SENHA";
-
-// NAV
-function abrirLive(){
-    document.getElementById("home").style.display="none";
-    document.getElementById("playerScreen").style.display="block";
-    carregarCategorias();
-}
+// 🔥 SEU LINK (COM PROXY PRA FUNCIONAR NO GITHUB)
+const url = "https://api.allorigins.win/raw?url=" + encodeURIComponent("http://simweb.top/get.php?username=guu49779&password=d33282wzp&type=ssiptv");
 
 // PLAYER
 function play(url){
@@ -129,55 +95,95 @@ function play(url){
     }
 }
 
-// CARREGAR CATEGORIAS
-function carregarCategorias(){
+// PARSE M3U
+function parseM3U(text){
+    const linhas = text.split("\n");
+    let lista = [];
+    let canal = {};
 
-fetch(`${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`)
-.then(r=>r.json())
-.then(categorias=>{
+    linhas.forEach(linha => {
+        linha = linha.trim();
 
-    const lista = document.getElementById("lista");
-    lista.innerHTML="";
+        if(linha.startsWith("#EXTINF")){
+            const nome = linha.split(",")[1];
 
-    categorias.forEach(cat=>{
+            const grupo = (linha.match(/group-title="(.*?)"/)||[])[1] || "Canais";
+            const logo = (linha.match(/tvg-logo="(.*?)"/)||[])[1] || "";
 
-        const div = document.createElement("div");
-        div.className="categoria";
-        div.innerText = cat.category_name;
+            canal = {nome, grupo, logo};
+        }
 
-        div.onclick = ()=> carregarCanais(cat.category_id);
-
-        lista.appendChild(div);
+        else if(linha.startsWith("http")){
+            canal.url = linha;
+            lista.push(canal);
+        }
     });
 
-});
+    return lista;
 }
 
-// CARREGAR CANAIS
-function carregarCanais(catId){
+// AGRUPAR
+function agrupar(lista){
+    const grupos = {};
 
-fetch(`${server}/player_api.php?username=${user}&password=${pass}&action=get_live_streams&category_id=${catId}`)
-.then(r=>r.json())
-.then(canais=>{
-
-    const lista = document.getElementById("lista");
-    lista.innerHTML="";
-
-    canais.forEach(c=>{
-
-        const urlStream = `${server}/live/${user}/${pass}/${c.stream_id}.m3u8`;
-
-        const div = document.createElement("div");
-        div.className="canal";
-        div.innerText = c.name;
-
-        div.onclick = ()=> play(urlStream);
-
-        lista.appendChild(div);
+    lista.forEach(c=>{
+        if(!grupos[c.grupo]) grupos[c.grupo]=[];
+        grupos[c.grupo].push(c);
     });
 
-});
+    return grupos;
 }
+
+// RENDER
+function render(lista){
+
+    const grupos = agrupar(lista);
+    const div = document.getElementById("lista");
+    div.innerHTML="";
+
+    Object.keys(grupos).forEach(g=>{
+
+        const cat = document.createElement("div");
+        cat.className="cat";
+        cat.innerText = "📂 " + g;
+
+        const box = document.createElement("div");
+        box.style.display="none";
+
+        cat.onclick = ()=>{
+            box.style.display = box.style.display==="block"?"none":"block";
+        };
+
+        grupos[g].forEach(c=>{
+
+            const item = document.createElement("div");
+            item.className="canal";
+
+            item.innerHTML = `
+                <img src="${c.logo || 'https://via.placeholder.com/40'}">
+                <span>${c.nome}</span>
+            `;
+
+            item.onclick = ()=> play(c.url);
+
+            box.appendChild(item);
+        });
+
+        div.appendChild(cat);
+        div.appendChild(box);
+    });
+}
+
+// CARREGAR
+fetch(url)
+.then(r=>r.text())
+.then(t=>{
+    const canais = parseM3U(t);
+    render(canais);
+})
+.catch(()=>{
+    document.getElementById("lista").innerHTML="Erro ao carregar lista";
+});
 
 </script>
 
