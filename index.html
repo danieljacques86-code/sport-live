@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>IPTV Player</title>
+    <title>IPTV Player - Player Dourado</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body {
@@ -15,7 +15,6 @@
             overflow: hidden;
         }
 
-        /* Vídeo de fundo rodando */
         #bg-video {
             position: fixed;
             right: 0;
@@ -26,7 +25,6 @@
             object-fit: cover;
         }
 
-        /* Overlay escuro para melhorar leitura */
         #overlay {
             position: fixed;
             top: 0;
@@ -57,25 +55,25 @@
         #lista {
             display: flex;
             flex-wrap: wrap;
-            padding: 10px;
-            gap: 5px;
+            padding: 15px 10px;
+            gap: 8px;
         }
 
         .canal {
             background: #1c1c1c;
-            margin: 5px;
+            margin: 0;
             padding: 12px 10px;
             border-radius: 8px;
             cursor: pointer;
             width: 180px;
             text-align: center;
             border: 1px solid #333;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.2s;
         }
 
         .canal:hover {
             background: #333;
-            transform: scale(1.02);
+            transform: scale(1.03);
         }
 
         video#video {
@@ -85,11 +83,21 @@
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
+
+        #erro-carregamento {
+            padding: 20px 10px;
+            text-align: center;
+            font-size: 16px;
+            color: #f55;
+            background: #222;
+            border-radius: 8px;
+            margin: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Vídeo de fundo -->
+    <!-- Vídeo de fundo rodando -->
     <video id="bg-video" autoplay muted loop>
         <source src="https://cdn.pixabay.com/video/2016/09/13/5192-183786490_large.mp4" type="video/mp4">
         Seu navegador não suporta vídeo.
@@ -104,33 +112,40 @@
     <video id="video" controls poster="https://www.freeiconspng.com/uploads/black-background-8.png"></video>
 
     <div id="lista"></div>
+    <div id="erro-carregamento" style="display:none;"></div>
 
     <script>
-        // 🔥 SUA NOVA FONTE M3U_PLUS (output=ts)
+        // 🔥 SUA FONTE M3U_PLUS (pode ser HLS/m3u8 ou mpegts)
         const urlM3U = "http://simweb.top/get.php?username=guu49779&password=d33282wzp&type=m3u_plus&output=ts";
 
-        // URL do EPG (opcional, se quiser usar depois)
-        const urlEPG = "http://epg.pfast5000.com";
-
-        // PLAYER
+        // PLAYER (auto‑detecta HLS ou ts)
         function play(url) {
             const video = document.getElementById('video');
 
-            if (Hls.isSupported()) {
+            video.src = ''; // limpa antes
+            video.load();
+
+            // Se suporta HLS, tenta usar hls.js para m3u8
+            if (Hls.isSupported() && /.m3u8/i.test(url)) {
                 const hls = new Hls();
                 hls.loadSource(url);
                 hls.attachMedia(video);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = url;
-            } else {
-                alert('HLS não suportado neste navegador.');
+                hls.on(Hls.Events.ERROR, function (_, data) {
+                    if (data.fatal) console.error('HLS ERROR:', data);
+                });
             }
-
-            // Exibir EPG em console (exemplo)
-            console.log('EPG carregado de:', urlEPG);
+            // Se for link direto de stream (ts, mpegts, etc)
+            else if (video.canPlayType('application/x-mpegURL') || /.m3u8/i.test(url)) {
+                video.src = url;
+            }
+            // Se não for HLS, tenta tocar diretamente (mpegts, etc)
+            else {
+                video.src = url;
+                if (!video.src) alert('Nenhum suporte para este tipo de stream.');
+            }
         }
 
-        // CONVERTER M3U (também funciona com m3u_plus)
+        // PARSER M3U / M3U_PLUS (mesmo formato)
         function parseM3U(text) {
             const linhas = text.split('
 ');
@@ -153,18 +168,27 @@
             return lista;
         }
 
-        // CARREGAR LISTA M3U_PLUS
+        // CARREGAR LISTA COM TRATAMENTO DE ERRO
+        document.getElementById('erro-carregamento').style.display = 'none'; // oculta erro
+
         fetch(urlM3U)
-            .then(res => res.text())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+                return res.text();
+            })
             .then(text => {
-                const canais = parseM3U(text);
+                const canais = parseM3U(text.trim());
                 const listaDiv = document.getElementById('lista');
+                const msgErro = document.getElementById('erro-carregamento');
 
                 if (canais.length === 0) {
-                    listaDiv.innerHTML = '<p>Nenhum canal encontrado na lista.</p>';
+                    msgErro.innerText = 'Playlist carregada, mas nenhum canal válido encontrado. Verifique URL.';
+                    msgErro.style.display = 'block';
                     return;
                 }
 
+                // Limpa e monta lista
+                listaDiv.innerHTML = '';
                 canais.forEach(c => {
                     const div = document.createElement('div');
                     div.className = 'canal';
@@ -178,7 +202,10 @@
                 });
             })
             .catch(err => {
-                document.body.innerHTML = `<p>Erro ao carregar lista: ${err.message}</p>`;
+                const msgErro = document.getElementById('erro-carregamento');
+                msgErro.innerText = 'Erro ao carregar lista: ' + err.message;
+                msgErro.style.display = 'block';
+                console.error('Erro ao carregar M3U:', err);
             });
     </script>
 </body>
