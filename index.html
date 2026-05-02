@@ -19,7 +19,6 @@
             position: relative;
         }
 
-        /* Vídeo de fundo rodando */
         #bg-video {
             position: fixed;
             top: 0;
@@ -30,7 +29,6 @@
             z-index: -2;
         }
 
-        /* Overlay escuro */
         #overlay {
             position: fixed;
             top: 0;
@@ -41,7 +39,6 @@
             z-index: -1;
         }
 
-        /* Header tipo app (player dourado) */
         header {
             position: sticky;
             top: 0;
@@ -67,7 +64,6 @@
             text-shadow: 0 0 6px #ffcc00;
         }
 
-        /* Player principal (grande) */
         .main-player {
             padding: 15px;
         }
@@ -80,11 +76,38 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
         }
 
-        /* Lista de canais (abaixo do player) */
-        #lista-container {
-            padding: 15px;
+        #lista-categorias {
+            display: flex;
+            gap: 8px;
+            padding: 10px 15px;
             max-width: 1200px;
             margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        .categoria {
+            padding: 8px 14px;
+            background: #1c1c1c;
+            border-radius: 20px;
+            border: 1px solid #333;
+            white-space: nowrap;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .categoria:hover {
+            background: #333;
+            color: #ffcc00;
+        }
+
+        .categoria.ativa {
+            background: #ffcc00;
+            color: #111;
+        }
+
+        #lista-container {
+            padding: 0 15px 15px;
         }
 
         #lista {
@@ -135,13 +158,16 @@
     <!-- Header tipo app IPTV -->
     <header>
         <img src="https://www.freeiconspng.com/uploads/star-channel-logo-png-1.png" alt="Player Dourado" class="logo">
-        <div class="title">🇵🇹 Player Dourado - IPTV</div>
+        <div class="title">🇵🇹 Player Dourado - IPTV Sports</div>
     </header>
 
     <!-- Player principal -->
     <div class="main-player">
         <video id="video" controls poster="https://www.freeiconspng.com/uploads/black-background-8.png"></video>
     </div>
+
+    <!-- Categorias dinâmicas -->
+    <div id="lista-categorias"></div>
 
     <!-- Lista de canais (abaixo) -->
     <div id="lista-container">
@@ -150,13 +176,13 @@
     </div>
 
     <script>
-        // 🔥 URL da sua lista M3U+
-        const urlM3U = "http://simweb.top/get.php?username=guu49779&password=d33282wzp&type=m3u_plus&output=ts";
+        // 🔥 LISTA ATUALIZADA DO DROPBOX
+        const urlM3U = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=iiy0m945&dl=0";
 
         // URL opcional do EPG
         const urlEPG = "http://epg.pfast5000.com";
 
-        // PLAYER (reconhece HLS/m3u8 e TS/mpegts)
+        // PLAYER (reconhece HLS/m3u8 e TS)
         function play(url) {
             const video = document.getElementById('video');
 
@@ -176,36 +202,46 @@
                 video.src = url; // mpegts, etc.
             }
 
-            // Exemplo: EPG no console
             console.log('EPG:', urlEPG);
         }
 
-        // PARSER genérico M3U / M3U+ (mesmo formato)
+        // PARSER M3U COM CATEGORIAS (group-title)
         function parseM3U(text) {
             const linhas = text.split('
 ');
-            let lista = [];
+            const canais = [];
+            const grupos = {}; // { "Futebol": [...], "Sports": [...] }
             let canal = {};
 
             linhas.forEach(linha => {
                 linha = linha.trim();
 
                 if (linha.startsWith('#EXTINF')) {
-                    const matchNome = linha.match(/,(.+)/);
-                    const nome = matchNome ? matchNome[1].trim() : 'Canal sem nome';
-                    canal = { nome };
+                    // Extrai nome e group-title (se existir)
+                    const nomeMatch = linha.match(/,(.+)/);
+                    const nome = nomeMatch ? nomeMatch[1].trim() : 'Canal sem nome';
+
+                    // tenta pegar group-title=""
+                    const groupMatch = linha.match(/group-title=["']([^"']+)["']/i);
+                    const grupo = groupMatch ? groupMatch[1].trim() : 'Sem Categoria';
+
+                    canal = { nome, grupo };
                 } else if (linha.startsWith('http')) {
                     canal.url = linha;
-                    lista.push(canal);
+                    canais.push(canal);
+
+                    if (!grupos[canal.grupo]) grupos[canal.grupo] = [];
+                    grupos[canal.grupo].push(canal);
                 }
             });
 
-            return lista;
+            return { canais, grupos };
         }
 
-        // CARREGAR LISTA COM TRATAMENTO DE ERRO (modo “iptvbob”)
-        const listaDiv = document.getElementById('lista');
-        const msgErro = document.getElementById('erro-carregamento');
+        // CARREGAR LISTA COM TRATAMENTO DE ERRO
+        const listaDiv        = document.getElementById('lista');
+        const categoriasDiv   = document.getElementById('lista-categorias');
+        const msgErro         = document.getElementById('erro-carregamento');
 
         msgErro.style.display = 'none';
 
@@ -215,7 +251,7 @@
                 return res.text();
             })
             .then(text => {
-                const canais = parseM3U(text.trim());
+                const { canais, grupos } = parseM3U(text.trim());
 
                 if (canais.length === 0) {
                     msgErro.innerHTML = 'Lista carregada, mas sem canais válidos. Verifique a URL.';
@@ -223,19 +259,44 @@
                     return;
                 }
 
-                // Limpa e monta a lista
-                listaDiv.innerHTML = '';
-                canais.forEach(c => {
+                // Monta lista de categorias (tabs)
+                categoriasDiv.innerHTML = '';
+                const gruposList = Object.keys(grupos).sort();
+
+                gruposList.forEach((nomeGrupo, i) => {
                     const div = document.createElement('div');
-                    div.className = 'canal';
-                    div.innerText = c.nome;
+                    div.className = 'categoria';
+                    div.innerText = nomeGrupo;
+                    if (i === 0) div.classList.add('ativa');
 
                     div.onclick = () => {
-                        play(c.url);
+                        // Remove “ativa” de todos
+                        document.querySelectorAll('.categoria').forEach(el => el.classList.remove('ativa'));
+                        div.classList.add('ativa');
+                        // Exibe canais dessa categoria
+                        exibirCanais(grupos[nomeGrupo]);
                     };
 
-                    listaDiv.appendChild(div);
+                    categoriasDiv.appendChild(div);
                 });
+
+                // Exibe primeira categoria
+                exibirCanais(grupos[gruposList[0]]);
+
+                function exibirCanais(listaCanais) {
+                    listaDiv.innerHTML = '';
+                    listaCanais.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'canal';
+                        div.innerText = c.nome;
+
+                        div.onclick = () => {
+                            play(c.url);
+                        };
+
+                        listaDiv.appendChild(div);
+                    });
+                }
             })
             .catch(err => {
                 msgErro.innerText = 'Erro ao carregar lista: ' + err.message;
