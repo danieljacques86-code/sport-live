@@ -2,27 +2,27 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPTV Player - Player Dourado</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
+            padding: 0;
         }
 
         body {
             background: #0f0f0f;
             color: #fff;
             font-family: Arial, sans-serif;
-            padding: 0;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
         }
 
         #bg-video {
             position: fixed;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -31,11 +31,8 @@
 
         #overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            inset: 0;
+            background: rgba(0, 0, 0, 0.72);
             z-index: -1;
         }
 
@@ -48,14 +45,17 @@
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid #444;
-            z-index: 10;
+            z-index: 20;
+            backdrop-filter: blur(8px);
         }
 
         header .logo {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             border: 2px solid #ffcc00;
+            object-fit: cover;
+            background: #111;
         }
 
         header .title {
@@ -65,15 +65,32 @@
         }
 
         .main-player {
-            padding: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
         }
 
         #video {
             width: 100%;
-            height: 300px;
+            height: 320px;
             background: #000;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            outline: none;
+        }
+
+        .player-info {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: rgba(20, 20, 20, 0.88);
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: #ddd;
+            font-size: 14px;
+        }
+
+        .player-info strong {
+            color: #ffcc00;
         }
 
         #lista-categorias {
@@ -83,17 +100,19 @@
             max-width: 1200px;
             margin: 0 auto;
             overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .categoria {
-            padding: 8px 14px;
+            padding: 9px 15px;
             background: #1c1c1c;
-            border-radius: 20px;
+            border-radius: 999px;
             border: 1px solid #333;
             white-space: nowrap;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            user-select: none;
         }
 
         .categoria:hover {
@@ -104,35 +123,14 @@
         .categoria.ativa {
             background: #ffcc00;
             color: #111;
+            font-weight: bold;
+            border-color: #ffcc00;
         }
 
         #lista-container {
-            padding: 0 15px 15px;
-        }
-
-        #lista {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px 0;
-        }
-
-        .canal {
-            background: rgba(30, 30, 30, 0.9);
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 12px 10px;
-            width: 170px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .canal:hover {
-            background: #333;
-            transform: scale(1.04);
-            box-shadow: 0 0 10px #ffcc00;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px 20px;
         }
 
         #erro-carregamento {
@@ -140,169 +138,405 @@
             background: #220000;
             border: 1px solid #ff3333;
             border-radius: 8px;
-            margin: 10px;
+            margin: 10px 0;
             font-size: 15px;
             color: #ffcccc;
+            display: none;
+        }
+
+        #lista {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .canal {
+            background: rgba(30, 30, 30, 0.92);
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 12px 10px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .canal:hover {
+            background: #333;
+            transform: scale(1.03);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+            border-color: #ffcc00;
+        }
+
+        .canal img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #111;
+            padding: 4px;
+            border: 1px solid #333;
+        }
+
+        .canal .nome {
+            font-size: 14px;
+            line-height: 1.3;
+            color: #fff;
+            word-break: break-word;
+        }
+
+        .canal .grupo {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .rodape {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 16px 24px;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            #video {
+                height: 220px;
+            }
+
+            header .title {
+                font-size: 16px;
+            }
+
+            .canal {
+                min-height: 110px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Vídeo de fundo -->
-    <video id="bg-video" autoplay muted loop>
+    <video id="bg-video" autoplay muted loop playsinline>
         <source src="https://cdn.pixabay.com/video/2016/09/13/5192-183786490_large.mp4" type="video/mp4">
         Seu navegador não suporta vídeo.
     </video>
     <div id="overlay"></div>
 
-    <!-- Header tipo app IPTV -->
     <header>
         <img src="https://www.freeiconspng.com/uploads/star-channel-logo-png-1.png" alt="Player Dourado" class="logo">
         <div class="title">🇵🇹 Player Dourado - IPTV Sports</div>
     </header>
 
-    <!-- Player principal -->
     <div class="main-player">
-        <video id="video" controls poster="https://www.freeiconspng.com/uploads/black-background-8.png"></video>
+        <video
+            id="video"
+            controls
+            playsinline
+            poster="https://www.freeiconspng.com/uploads/black-background-8.png">
+        </video>
+
+        <div class="player-info">
+            <div><strong>Canal atual:</strong> <span id="canal-atual">Nenhum canal selecionado</span></div>
+            <div style="margin-top:6px;"><strong>EPG:</strong> <span id="epg-info">http://epg.pfast5000.com</span></div>
+        </div>
     </div>
 
-    <!-- Categorias dinâmicas -->
     <div id="lista-categorias"></div>
 
-    <!-- Lista de canais (abaixo) -->
     <div id="lista-container">
-        <div id="erro-carregamento" style="display:none;"></div>
+        <div id="erro-carregamento"></div>
         <div id="lista"></div>
     </div>
 
+    <div class="rodape">
+        Player com suporte a HLS (.m3u8), MP4 e listas M3U com categorias.
+    </div>
+
     <script>
-        // 🔥 LISTA ATUALIZADA DO DROPBOX
+        // URL da sua lista M3U/TXT
         const urlM3U = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=iiy0m945&dl=0";
 
         // URL opcional do EPG
         const urlEPG = "http://epg.pfast5000.com";
 
-        // PLAYER (reconhece HLS/m3u8 e TS)
-        function play(url) {
-            const video = document.getElementById('video');
+        const listaDiv = document.getElementById('lista');
+        const categoriasDiv = document.getElementById('lista-categorias');
+        const msgErro = document.getElementById('erro-carregamento');
+        const video = document.getElementById('video');
+        const canalAtual = document.getElementById('canal-atual');
+        const epgInfo = document.getElementById('epg-info');
 
-            video.src = '';
-            video.load();
+        epgInfo.textContent = urlEPG;
 
-            if (Hls.isSupported() && /.m3u8$/i.test(url)) {
-                const hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.ERROR, (_, data) => {
-                    if (data.fatal) console.error('HLS ERROR:', data);
-                });
-            } else if (video.canPlayType('application/x-mpegURL') || /.m3u8$/i.test(url)) {
-                video.src = url;
-            } else {
-                video.src = url; // mpegts, etc.
-            }
+        let hls = null;
+        let canaisGlobais = [];
+        let gruposGlobais = {};
 
-            console.log('EPG:', urlEPG);
+        function isHlsUrl(url) {
+            return /\.m3u8(\?|$)/i.test(url);
         }
 
-        // PARSER M3U COM CATEGORIAS (group-title)
-        function parseM3U(text) {
-            const linhas = text.split('
-');
-            const canais = [];
-            const grupos = {}; // { "Futebol": [...], "Sports": [...] }
-            let canal = {};
+        function isYoutubeUrl(url) {
+            return /youtube\.com|youtu\.be|music\.youtube\.com/i.test(url);
+        }
 
-            linhas.forEach(linha => {
+        function limparPlayer() {
+            try {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+            } catch (e) {
+                console.warn("Erro ao destruir HLS:", e);
+            }
+
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        }
+
+        async function resolveStreamUrl(url) {
+            if (/\.url(\?|$)/i.test(url)) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error("Falha ao abrir arquivo .url");
+
+                    const txt = await res.text();
+                    const match = txt.match(/(?:^|\n)URL=(https?:\/\/[^\r\n]+)/i);
+
+                    if (match && match[1]) {
+                        return match[1].trim();
+                    }
+                } catch (e) {
+                    console.warn("Não foi possível resolver o .url:", e);
+                }
+            }
+
+            return url;
+        }
+
+        async function play(inputUrl, nomeCanal = "Canal sem nome") {
+            try {
+                const url = await resolveStreamUrl(inputUrl);
+
+                if (isYoutubeUrl(url)) {
+                    alert("Esse link é do YouTube e não pode ser reproduzido diretamente no player HTML5.");
+                    return;
+                }
+
+                limparPlayer();
+
+                canalAtual.textContent = nomeCanal;
+
+                if (Hls.isSupported() && isHlsUrl(url)) {
+                    hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true
+                    });
+
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                        video.play().catch(() => {});
+                    });
+
+                    hls.on(Hls.Events.ERROR, function (_, data) {
+                        console.error("HLS ERROR:", data);
+                        if (data.fatal) {
+                            console.warn("Erro fatal HLS. Tentando fallback nativo...");
+                            try {
+                                hls.destroy();
+                                hls = null;
+                                video.src = url;
+                                video.play().catch(() => {});
+                            } catch (e) {
+                                console.error("Fallback falhou:", e);
+                            }
+                        }
+                    });
+                } else {
+                    video.src = url;
+                    video.play().catch(() => {});
+                }
+
+                console.log("EPG:", urlEPG);
+                console.log("Reproduzindo:", url);
+            } catch (err) {
+                console.error("Erro ao reproduzir:", err);
+                alert("Erro ao reproduzir o canal.");
+            }
+        }
+
+        function normalizarExtinf(linha) {
+            if (linha.startsWith("EXTINF")) {
+                return "#" + linha;
+            }
+            return linha;
+        }
+
+        function parseM3U(text) {
+            const linhas = text.split(/\r?\n/);
+            const canais = [];
+            const grupos = {};
+            let canalPendente = null;
+
+            function adicionarCanal(canal) {
+                if (!canal || !canal.url) return;
+
+                if (!canal.nome || !canal.nome.trim()) {
+                    canal.nome = "Canal sem nome";
+                }
+
+                if (!canal.grupo || !canal.grupo.trim()) {
+                    canal.grupo = "Sem Categoria";
+                }
+
+                canais.push(canal);
+
+                if (!grupos[canal.grupo]) grupos[canal.grupo] = [];
+                grupos[canal.grupo].push(canal);
+            }
+
+            for (let linha of linhas) {
                 linha = linha.trim();
+                if (!linha) continue;
+
+                linha = normalizarExtinf(linha);
 
                 if (linha.startsWith('#EXTINF')) {
-                    // Extrai nome e group-title (se existir)
-                    const nomeMatch = linha.match(/,(.+)/);
-                    const nome = nomeMatch ? nomeMatch[1].trim() : 'Canal sem nome';
-
-                    // tenta pegar group-title=""
                     const groupMatch = linha.match(/group-title=["']([^"']+)["']/i);
+                    const logoMatch = linha.match(/tvg-logo=["']([^"']+)["']/i);
+
                     const grupo = groupMatch ? groupMatch[1].trim() : 'Sem Categoria';
+                    const logo = logoMatch ? logoMatch[1].trim() : '';
 
-                    canal = { nome, grupo };
-                } else if (linha.startsWith('http')) {
-                    canal.url = linha;
-                    canais.push(canal);
+                    const inlineUrlMatch = linha.match(/(https?:\/\/\S+)$/i);
+                    const inlineUrl = inlineUrlMatch ? inlineUrlMatch[1].trim() : null;
 
-                    if (!grupos[canal.grupo]) grupos[canal.grupo] = [];
-                    grupos[canal.grupo].push(canal);
+                    let nome = 'Canal sem nome';
+                    const commaIndex = linha.lastIndexOf(',');
+
+                    if (commaIndex !== -1) {
+                        nome = linha.substring(commaIndex + 1).trim();
+
+                        if (inlineUrl) {
+                            nome = nome.replace(inlineUrl, '').trim();
+                        }
+                    }
+
+                    canalPendente = { nome, grupo, logo };
+
+                    if (inlineUrl) {
+                        canalPendente.url = inlineUrl;
+                        adicionarCanal(canalPendente);
+                        canalPendente = null;
+                    }
                 }
-            });
+                else if (/^https?:\/\//i.test(linha)) {
+                    if (canalPendente) {
+                        canalPendente.url = linha;
+                        adicionarCanal(canalPendente);
+                        canalPendente = null;
+                    }
+                }
+            }
 
             return { canais, grupos };
         }
 
-        // CARREGAR LISTA COM TRATAMENTO DE ERRO
-        const listaDiv        = document.getElementById('lista');
-        const categoriasDiv   = document.getElementById('lista-categorias');
-        const msgErro         = document.getElementById('erro-carregamento');
+        function exibirCanais(listaCanais) {
+            listaDiv.innerHTML = '';
 
-        msgErro.style.display = 'none';
+            if (!listaCanais || listaCanais.length === 0) {
+                listaDiv.innerHTML = '<div style="color:#ccc;padding:10px;">Nenhum canal nesta categoria.</div>';
+                return;
+            }
 
-        fetch(urlM3U)
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                return res.text();
-            })
-            .then(text => {
+            listaCanais.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'canal';
+
+                const logoHtml = c.logo
+                    ? `<img src="${c.logo}" alt="${c.nome}" onerror="this.style.display='none'">`
+                    : `<img src="https://cdn-icons-png.flaticon.com/512/149/149852.png" alt="${c.nome}">`;
+
+                div.innerHTML = `
+                    ${logoHtml}
+                    <div class="nome">${c.nome}</div>
+                    <div class="grupo">${c.grupo}</div>
+                `;
+
+                div.onclick = () => play(c.url, c.nome);
+                listaDiv.appendChild(div);
+            });
+        }
+
+        function exibirCategorias(grupos) {
+            categoriasDiv.innerHTML = '';
+            const gruposList = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            if (gruposList.length === 0) {
+                msgErro.textContent = 'Nenhuma categoria encontrada na lista.';
+                msgErro.style.display = 'block';
+                return;
+            }
+
+            gruposList.forEach((nomeGrupo, i) => {
+                const div = document.createElement('div');
+                div.className = 'categoria';
+                div.innerText = `${nomeGrupo} (${grupos[nomeGrupo].length})`;
+
+                if (i === 0) div.classList.add('ativa');
+
+                div.onclick = () => {
+                    document.querySelectorAll('.categoria').forEach(el => el.classList.remove('ativa'));
+                    div.classList.add('ativa');
+                    exibirCanais(grupos[nomeGrupo]);
+                };
+
+                categoriasDiv.appendChild(div);
+            });
+
+            exibirCanais(grupos[gruposList[0]]);
+        }
+
+        async function carregarLista() {
+            msgErro.style.display = 'none';
+            msgErro.textContent = '';
+
+            try {
+                const res = await fetch(urlM3U);
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+
+                const text = await res.text();
                 const { canais, grupos } = parseM3U(text.trim());
 
-                if (canais.length === 0) {
-                    msgErro.innerHTML = 'Lista carregada, mas sem canais válidos. Verifique a URL.';
-                    msgErro.style.display = 'block';
-                    return;
+                canaisGlobais = canais;
+                gruposGlobais = grupos;
+
+                if (!canais.length) {
+                    throw new Error('A lista carregou, mas nenhum canal válido foi encontrado.');
                 }
 
-                // Monta lista de categorias (tabs)
-                categoriasDiv.innerHTML = '';
-                const gruposList = Object.keys(grupos).sort();
-
-                gruposList.forEach((nomeGrupo, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'categoria';
-                    div.innerText = nomeGrupo;
-                    if (i === 0) div.classList.add('ativa');
-
-                    div.onclick = () => {
-                        // Remove “ativa” de todos
-                        document.querySelectorAll('.categoria').forEach(el => el.classList.remove('ativa'));
-                        div.classList.add('ativa');
-                        // Exibe canais dessa categoria
-                        exibirCanais(grupos[nomeGrupo]);
-                    };
-
-                    categoriasDiv.appendChild(div);
-                });
-
-                // Exibe primeira categoria
-                exibirCanais(grupos[gruposList[0]]);
-
-                function exibirCanais(listaCanais) {
-                    listaDiv.innerHTML = '';
-                    listaCanais.forEach(c => {
-                        const div = document.createElement('div');
-                        div.className = 'canal';
-                        div.innerText = c.nome;
-
-                        div.onclick = () => {
-                            play(c.url);
-                        };
-
-                        listaDiv.appendChild(div);
-                    });
-                }
-            })
-            .catch(err => {
-                msgErro.innerText = 'Erro ao carregar lista: ' + err.message;
+                exibirCategorias(grupos);
+                console.log(`Canais carregados: ${canais.length}`);
+            } catch (err) {
+                msgErro.textContent = 'Erro ao carregar lista: ' + err.message;
                 msgErro.style.display = 'block';
                 console.error('Erro M3U:', err);
-            });
+            }
+        }
+
+        carregarLista();
     </script>
 </body>
 </html>
