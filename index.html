@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>IPTV TV MODE</title>
+<title>IPTV PRO UI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -10,123 +10,157 @@
 body {
     margin:0;
     font-family:Arial;
+    background:#0a2a5e;
     color:#fff;
-    overflow:hidden;
 }
 
-/* VIDEO FUNDO */
-#bgVideo {
-    position:fixed;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    z-index:-2;
-    opacity:0.2;
-}
-
-.overlay {
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.8);
-    z-index:-1;
-}
-
-/* LAYOUT */
-.container {
+/* HOME */
+#home {
     display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
     height:100vh;
 }
 
-/* PLAYER */
-.player-area {
-    flex:1;
-    position:relative;
+/* LOGO */
+.logo {
+    font-size:40px;
+    margin-bottom:40px;
 }
 
-video#video {
+/* MENU */
+.menu {
+    display:flex;
+    gap:20px;
+}
+
+/* CARD */
+.card {
+    width:180px;
+    height:120px;
+    border:2px solid rgba(255,255,255,0.4);
+    border-radius:12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.card:hover {
+    background:rgba(255,255,255,0.1);
+    transform:scale(1.05);
+}
+
+.card span {
+    margin-top:10px;
+}
+
+/* PLAYER SCREEN */
+#playerScreen {
+    display:none;
+    height:100vh;
+}
+
+/* LAYOUT TV */
+.container {
+    display:flex;
+    height:100%;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width:300px;
+    background:#111;
+    overflow-y:auto;
+}
+
+.player-area {
+    flex:1;
+}
+
+video {
     width:100%;
     height:100%;
     background:black;
 }
 
-/* SIDEBAR */
-.sidebar {
-    width:320px;
-    background:#111;
-    overflow-y:auto;
-    transition:0.3s;
-}
-
-.sidebar.hidden {
-    width:80px;
-}
-
-/* CATEGORIA */
-.cat-titulo {
-    padding:10px;
-    background:#222;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.canais {
-    display:none;
-}
-
-/* CANAL */
-.canal {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:8px;
-    border-bottom:1px solid #222;
-    cursor:pointer;
-}
-
-.canal img {
-    width:35px;
-    height:35px;
+/* BOTÃO VOLTAR */
+.voltar {
+    position:absolute;
+    top:10px;
+    left:10px;
     background:#000;
-    border-radius:5px;
-}
-
-.canal:hover {
-    background:#333;
-}
-
-/* MODO MINI */
-.sidebar.hidden .canal span {
-    display:none;
+    padding:10px;
+    cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<video id="bgVideo" autoplay muted loop>
-<source src="https://cdn.pixabay.com/video/2016/09/13/5156-183300188_tiny.mp4">
-</video>
+<!-- HOME -->
+<div id="home">
 
-<div class="overlay"></div>
+    <div class="logo">▶ IPTV PRO</div>
 
-<div class="container">
+    <div class="menu">
 
-    <!-- PLAYER -->
-    <div class="player-area">
-        <video id="video" controls></video>
+        <div class="card" onclick="abrirLive()">
+            📺
+            <span>LIVE TV</span>
+        </div>
+
+        <div class="card">
+            🧾
+            <span>EPG</span>
+        </div>
+
+        <div class="card">
+            🎬
+            <span>VOD</span>
+        </div>
+
+        <div class="card">
+            📺
+            <span>SERIES</span>
+        </div>
+
     </div>
 
-    <!-- LISTA -->
-    <div class="sidebar" id="sidebar"></div>
+</div>
+
+<!-- PLAYER -->
+<div id="playerScreen">
+
+    <div class="voltar" onclick="voltarHome()">⬅ VOLTAR</div>
+
+    <div class="container">
+        <div class="sidebar" id="sidebar"></div>
+
+        <div class="player-area">
+            <video id="video" controls></video>
+        </div>
+    </div>
 
 </div>
 
 <script>
 
-const url = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=kup5bytz&dl=0";
+const url = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?dl=0";
 
-let canaisGlobais = [];
+// NAV
+function abrirLive() {
+    document.getElementById("home").style.display = "none";
+    document.getElementById("playerScreen").style.display = "block";
+}
+
+function voltarHome() {
+    document.getElementById("home").style.display = "flex";
+    document.getElementById("playerScreen").style.display = "none";
+}
 
 // PLAYER
 function play(url) {
@@ -141,12 +175,6 @@ function play(url) {
     }
 }
 
-// PEGAR NÚMERO DO CANAL
-function extrairNumero(nome) {
-    const match = nome.match(/\d+/);
-    return match ? parseInt(match[0]) : 9999;
-}
-
 // PARSE
 function parseM3U(text) {
     const linhas = text.split("\n");
@@ -157,13 +185,8 @@ function parseM3U(text) {
         linha = linha.trim();
 
         if (linha.startsWith("#EXTINF")) {
-
             const nome = linha.split(",")[1];
-            const grupo = (linha.match(/group-title="(.*?)"/) || [])[1] || "Outros";
-            const logo = (linha.match(/tvg-logo="(.*?)"/) || [])[1] || "";
-
-            canal = { nome, grupo, logo };
-
+            canal = { nome };
         } 
         else if (linha.startsWith("http")) {
             canal.url = linha;
@@ -174,78 +197,23 @@ function parseM3U(text) {
     return lista;
 }
 
-// AGRUPAR
-function agrupar(canais) {
-    const grupos = {};
-    canais.forEach(c => {
-        if (!grupos[c.grupo]) grupos[c.grupo] = [];
-        grupos[c.grupo].push(c);
-    });
-
-    // ORDENAR NUMERICAMENTE
-    Object.keys(grupos).forEach(g => {
-        grupos[g].sort((a,b) => extrairNumero(a.nome) - extrairNumero(b.nome));
-    });
-
-    return grupos;
-}
-
 // RENDER
-function render(canais) {
-
-    const sidebar = document.getElementById("sidebar");
-    sidebar.innerHTML = "";
-
-    const grupos = agrupar(canais);
-
-    Object.keys(grupos).forEach(nomeGrupo => {
-
-        const titulo = document.createElement("div");
-        titulo.className = "cat-titulo";
-        titulo.innerText = "📂 " + nomeGrupo;
-
-        const canaisDiv = document.createElement("div");
-        canaisDiv.className = "canais";
-
-        titulo.onclick = () => {
-            canaisDiv.style.display = canaisDiv.style.display === "block" ? "none" : "block";
-        };
-
-        grupos[nomeGrupo].forEach(c => {
-
-            const div = document.createElement("div");
-            div.className = "canal";
-
-            div.innerHTML = `
-                <img src="${c.logo || 'https://via.placeholder.com/40'}">
-                <span>${c.nome}</span>
-            `;
-
-            div.onclick = () => play(c.url);
-
-            canaisDiv.appendChild(div);
-        });
-
-        sidebar.appendChild(titulo);
-        sidebar.appendChild(canaisDiv);
-    });
-}
-
-// 🔥 CONTROLE TIPO TV
-const sidebar = document.getElementById("sidebar");
-const player = document.getElementById("video");
-
-// Clique no player → esconder lista
-player.addEventListener("click", () => {
-    sidebar.classList.toggle("hidden");
-});
-
-// CARREGAR
 fetch(url)
 .then(res => res.text())
 .then(text => {
-    canaisGlobais = parseM3U(text);
-    render(canaisGlobais);
+    const canais = parseM3U(text);
+    const sidebar = document.getElementById("sidebar");
+
+    canais.forEach(c => {
+        const div = document.createElement("div");
+        div.style.padding = "10px";
+        div.style.cursor = "pointer";
+        div.innerText = c.nome;
+
+        div.onclick = () => play(c.url);
+
+        sidebar.appendChild(div);
+    });
 });
 
 </script>
