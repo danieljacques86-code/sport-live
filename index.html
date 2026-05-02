@@ -1,12 +1,37 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>IPTV Player</title><script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script><style>
+<title>IPTV Player PRO</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
 body {
-    background:#0f0f0f;
-    color:#fff;
-    font-family:Arial;
     margin:0;
+    font-family:Arial;
+    color:#fff;
+}
+
+/* 🎥 VIDEO DE FUNDO */
+#bgVideo {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:-1;
+    opacity:0.25;
+}
+
+/* OVERLAY ESCURO */
+.overlay {
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.7);
+    z-index:-1;
 }
 
 header {
@@ -16,36 +41,75 @@ header {
     font-size:20px;
 }
 
-#lista {
-    display:flex;
-    flex-wrap:wrap;
-    padding:10px;
-}
-
-.canal {
-    background:#1c1c1c;
-    margin:5px;
-    padding:10px;
-    border-radius:8px;
-    cursor:pointer;
-    width:180px;
-    text-align:center;
-}
-
-.canal:hover {
-    background:#333;
-}
-
-video {
+/* PLAYER */
+video#video {
     width:100%;
     height:300px;
     background:black;
 }
-</style></head><body><header>📺 IPTV Player Dropbox</header><video id="video" controls></video>
 
-<div id="lista"></div><script>
+/* LISTA */
+#lista {
+    padding:10px;
+}
 
-// 🔥 SUA LISTA (COM PROXY)
+/* CATEGORIA */
+.categoria {
+    background:#1a1a1a;
+    margin-bottom:10px;
+    border-radius:8px;
+    overflow:hidden;
+}
+
+.cat-titulo {
+    padding:12px;
+    cursor:pointer;
+    font-weight:bold;
+    background:#222;
+}
+
+.cat-titulo:hover {
+    background:#333;
+}
+
+.canais {
+    display:none;
+    padding:10px;
+}
+
+/* CANAIS */
+.canal {
+    background:#2a2a2a;
+    margin:5px;
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.canal:hover {
+    background:#444;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🎥 VIDEO FUNDO -->
+<video id="bgVideo" autoplay muted loop>
+    <source src="https://cdn.pixabay.com/video/2016/09/13/5156-183300188_tiny.mp4" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<header>📺 IPTV Player PRO</header>
+
+<video id="video" controls></video>
+
+<div id="lista"></div>
+
+<script>
+
+// 🔥 SUA LISTA
 const url = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?rlkey=qpodxt2auc0wyy46o9qdmto3b&st=kup5bytz&dl=0";
 
 // PLAYER
@@ -61,7 +125,7 @@ function play(url) {
     }
 }
 
-// CONVERTER M3U
+// 🔥 CONVERTER M3U COM CATEGORIA
 function parseM3U(text) {
     const linhas = text.split("\n");
     let lista = [];
@@ -71,8 +135,14 @@ function parseM3U(text) {
         linha = linha.trim();
 
         if (linha.startsWith("#EXTINF")) {
+
             const nome = linha.split(",")[1];
-            canal = { nome: nome };
+
+            const grupoMatch = linha.match(/group-title="(.*?)"/);
+            const grupo = grupoMatch ? grupoMatch[1] : "Outros";
+
+            canal = { nome, grupo };
+
         } 
         else if (linha.startsWith("http")) {
             canal.url = linha;
@@ -83,22 +153,61 @@ function parseM3U(text) {
     return lista;
 }
 
-// CARREGAR LISTA
+// 🔥 ORGANIZAR POR CATEGORIA
+function agruparPorCategoria(canais) {
+    const grupos = {};
+
+    canais.forEach(c => {
+        if (!grupos[c.grupo]) {
+            grupos[c.grupo] = [];
+        }
+        grupos[c.grupo].push(c);
+    });
+
+    return grupos;
+}
+
+// 🔥 RENDER
 fetch(url)
 .then(res => res.text())
 .then(text => {
 
     const canais = parseM3U(text);
+    const grupos = agruparPorCategoria(canais);
+
     const listaDiv = document.getElementById("lista");
 
-    canais.forEach(c => {
-        const div = document.createElement("div");
-        div.className = "canal";
-        div.innerText = c.nome;
+    Object.keys(grupos).forEach(nomeGrupo => {
 
-        div.onclick = () => play(c.url);
+        const categoriaDiv = document.createElement("div");
+        categoriaDiv.className = "categoria";
 
-        listaDiv.appendChild(div);
+        const titulo = document.createElement("div");
+        titulo.className = "cat-titulo";
+        titulo.innerText = "📂 " + nomeGrupo;
+
+        const canaisDiv = document.createElement("div");
+        canaisDiv.className = "canais";
+
+        // Toggle abrir/fechar
+        titulo.onclick = () => {
+            canaisDiv.style.display = canaisDiv.style.display === "block" ? "none" : "block";
+        };
+
+        grupos[nomeGrupo].forEach(c => {
+            const div = document.createElement("div");
+            div.className = "canal";
+            div.innerText = c.nome;
+
+            div.onclick = () => play(c.url);
+
+            canaisDiv.appendChild(div);
+        });
+
+        categoriaDiv.appendChild(titulo);
+        categoriaDiv.appendChild(canaisDiv);
+
+        listaDiv.appendChild(categoriaDiv);
     });
 
 })
@@ -106,5 +215,7 @@ fetch(url)
     document.body.innerHTML += "<p>Erro ao carregar lista</p>";
 });
 
-</script></body>
+</script>
+
+</body>
 </html>
