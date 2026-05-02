@@ -5,147 +5,182 @@
     <title>IPTV Player - Player Dourado</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
         body {
             background: #0f0f0f;
             color: #fff;
-            font-family: Arial;
-            margin: 0;
+            font-family: Arial, sans-serif;
             padding: 0;
-            position: relative;
             overflow: hidden;
+            position: relative;
         }
 
+        /* Vídeo de fundo rodando */
         #bg-video {
             position: fixed;
-            right: 0;
-            bottom: 0;
-            min-width: 100%;
-            min-height: 100%;
-            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
+            z-index: -2;
         }
 
+        /* Overlay escuro */
         #overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             z-index: -1;
         }
 
+        /* Header tipo app (player dourado) */
         header {
-            background: rgba(17, 17, 17, 0.8);
-            padding: 15px 20px;
-            text-align: center;
-            font-size: 20px;
+            position: sticky;
+            top: 0;
+            background: rgba(17, 17, 17, 0.95);
+            padding: 12px 20px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border-bottom: 1px solid #333;
+            gap: 12px;
+            border-bottom: 1px solid #444;
+            z-index: 10;
         }
 
         header .logo {
-            width: 60px;
-            height: auto;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #ffcc00;
+        }
+
+        header .title {
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 6px #ffcc00;
+        }
+
+        /* Player principal (grande) */
+        .main-player {
+            padding: 15px;
+        }
+
+        #video {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Lista de canais (abaixo do player) */
+        #lista-container {
+            padding: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         #lista {
             display: flex;
             flex-wrap: wrap;
-            padding: 15px 10px;
-            gap: 8px;
+            gap: 10px;
+            padding: 10px 0;
         }
 
         .canal {
-            background: #1c1c1c;
-            margin: 0;
-            padding: 12px 10px;
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
             border-radius: 8px;
-            cursor: pointer;
-            width: 180px;
+            padding: 12px 10px;
+            width: 170px;
             text-align: center;
-            border: 1px solid #333;
-            transition: background 0.2s, transform 0.2s;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
         }
 
         .canal:hover {
             background: #333;
-            transform: scale(1.03);
-        }
-
-        video#video {
-            width: 100%;
-            height: 300px;
-            background: #000;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transform: scale(1.04);
+            box-shadow: 0 0 10px #ffcc00;
         }
 
         #erro-carregamento {
-            padding: 20px 10px;
-            text-align: center;
-            font-size: 16px;
-            color: #f55;
-            background: #222;
+            padding: 16px 12px;
+            background: #220000;
+            border: 1px solid #ff3333;
             border-radius: 8px;
             margin: 10px;
+            font-size: 15px;
+            color: #ffcccc;
         }
     </style>
 </head>
 <body>
 
-    <!-- Vídeo de fundo rodando -->
+    <!-- Vídeo de fundo -->
     <video id="bg-video" autoplay muted loop>
         <source src="https://cdn.pixabay.com/video/2016/09/13/5192-183786490_large.mp4" type="video/mp4">
         Seu navegador não suporta vídeo.
     </video>
     <div id="overlay"></div>
 
+    <!-- Header tipo app IPTV -->
     <header>
         <img src="https://www.freeiconspng.com/uploads/star-channel-logo-png-1.png" alt="Player Dourado" class="logo">
-        📺 IPTV Player - Player Dourado
+        <div class="title">🇵🇹 Player Dourado - IPTV</div>
     </header>
 
-    <video id="video" controls poster="https://www.freeiconspng.com/uploads/black-background-8.png"></video>
+    <!-- Player principal -->
+    <div class="main-player">
+        <video id="video" controls poster="https://www.freeiconspng.com/uploads/black-background-8.png"></video>
+    </div>
 
-    <div id="lista"></div>
-    <div id="erro-carregamento" style="display:none;"></div>
+    <!-- Lista de canais (abaixo) -->
+    <div id="lista-container">
+        <div id="erro-carregamento" style="display:none;"></div>
+        <div id="lista"></div>
+    </div>
 
     <script>
-        // 🔥 SUA FONTE M3U_PLUS (pode ser HLS/m3u8 ou mpegts)
+        // 🔥 URL da sua lista M3U+
         const urlM3U = "http://simweb.top/get.php?username=guu49779&password=d33282wzp&type=m3u_plus&output=ts";
 
-        // PLAYER (auto‑detecta HLS ou ts)
+        // URL opcional do EPG
+        const urlEPG = "http://epg.pfast5000.com";
+
+        // PLAYER (reconhece HLS/m3u8 e TS/mpegts)
         function play(url) {
             const video = document.getElementById('video');
 
-            video.src = ''; // limpa antes
+            video.src = '';
             video.load();
 
-            // Se suporta HLS, tenta usar hls.js para m3u8
-            if (Hls.isSupported() && /.m3u8/i.test(url)) {
+            if (Hls.isSupported() && /.m3u8$/i.test(url)) {
                 const hls = new Hls();
                 hls.loadSource(url);
                 hls.attachMedia(video);
-                hls.on(Hls.Events.ERROR, function (_, data) {
+                hls.on(Hls.Events.ERROR, (_, data) => {
                     if (data.fatal) console.error('HLS ERROR:', data);
                 });
-            }
-            // Se for link direto de stream (ts, mpegts, etc)
-            else if (video.canPlayType('application/x-mpegURL') || /.m3u8/i.test(url)) {
+            } else if (video.canPlayType('application/x-mpegURL') || /.m3u8$/i.test(url)) {
                 video.src = url;
+            } else {
+                video.src = url; // mpegts, etc.
             }
-            // Se não for HLS, tenta tocar diretamente (mpegts, etc)
-            else {
-                video.src = url;
-                if (!video.src) alert('Nenhum suporte para este tipo de stream.');
-            }
+
+            // Exemplo: EPG no console
+            console.log('EPG:', urlEPG);
         }
 
-        // PARSER M3U / M3U_PLUS (mesmo formato)
+        // PARSER genérico M3U / M3U+ (mesmo formato)
         function parseM3U(text) {
             const linhas = text.split('
 ');
@@ -168,26 +203,27 @@
             return lista;
         }
 
-        // CARREGAR LISTA COM TRATAMENTO DE ERRO
-        document.getElementById('erro-carregamento').style.display = 'none'; // oculta erro
+        // CARREGAR LISTA COM TRATAMENTO DE ERRO (modo “iptvbob”)
+        const listaDiv = document.getElementById('lista');
+        const msgErro = document.getElementById('erro-carregamento');
+
+        msgErro.style.display = 'none';
 
         fetch(urlM3U)
             .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                 return res.text();
             })
             .then(text => {
                 const canais = parseM3U(text.trim());
-                const listaDiv = document.getElementById('lista');
-                const msgErro = document.getElementById('erro-carregamento');
 
                 if (canais.length === 0) {
-                    msgErro.innerText = 'Playlist carregada, mas nenhum canal válido encontrado. Verifique URL.';
+                    msgErro.innerHTML = 'Lista carregada, mas sem canais válidos. Verifique a URL.';
                     msgErro.style.display = 'block';
                     return;
                 }
 
-                // Limpa e monta lista
+                // Limpa e monta a lista
                 listaDiv.innerHTML = '';
                 canais.forEach(c => {
                     const div = document.createElement('div');
@@ -202,10 +238,9 @@
                 });
             })
             .catch(err => {
-                const msgErro = document.getElementById('erro-carregamento');
                 msgErro.innerText = 'Erro ao carregar lista: ' + err.message;
                 msgErro.style.display = 'block';
-                console.error('Erro ao carregar M3U:', err);
+                console.error('Erro M3U:', err);
             });
     </script>
 </body>
