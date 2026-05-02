@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>IPTV PRO COMPLETO</title>
+<title>IPTV PRO REAL</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -17,15 +17,9 @@ body {
 /* HOME */
 #home {
     display:flex;
-    flex-direction:column;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     height:100vh;
-}
-
-.logo {
-    font-size:35px;
-    margin-bottom:40px;
 }
 
 .menu {
@@ -39,19 +33,12 @@ body {
     border:2px solid rgba(255,255,255,0.4);
     border-radius:12px;
     display:flex;
-    flex-direction:column;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     cursor:pointer;
-    transition:0.3s;
 }
 
-.card:hover {
-    background:rgba(255,255,255,0.1);
-    transform:scale(1.05);
-}
-
-/* PLAYER SCREEN */
+/* PLAYER */
 #playerScreen {
     display:none;
     height:100vh;
@@ -62,20 +49,13 @@ body {
     height:100%;
 }
 
-/* SIDEBAR ESQUERDA */
 .sidebar {
     width:300px;
     background:#111;
-    overflow-y:auto;
-    transition:0.3s;
+    overflow:auto;
 }
 
-.sidebar.hidden {
-    width:80px;
-}
-
-/* PLAYER */
-.player-area {
+.player {
     flex:1;
 }
 
@@ -85,49 +65,20 @@ video {
     background:black;
 }
 
-/* BOTÃO VOLTAR */
-.voltar {
-    position:absolute;
-    top:10px;
-    left:10px;
-    background:#000;
-    padding:10px;
-    cursor:pointer;
-    z-index:10;
-}
-
-/* CATEGORIA */
-.cat-titulo {
-    padding:10px;
-    background:#222;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-/* CANAIS */
 .canal {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:8px;
+    padding:10px;
     border-bottom:1px solid #333;
     cursor:pointer;
-}
-
-.canal img {
-    width:35px;
-    height:35px;
-    background:#000;
-    border-radius:5px;
 }
 
 .canal:hover {
     background:#333;
 }
 
-/* ESCONDE TEXTO NO MINI */
-.sidebar.hidden .canal span {
-    display:none;
+.categoria {
+    background:#222;
+    padding:10px;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -136,53 +87,40 @@ video {
 
 <!-- HOME -->
 <div id="home">
-    <div class="logo">▶ IPTV PRO</div>
-
     <div class="menu">
         <div class="card" onclick="abrirLive()">📺 LIVE TV</div>
-        <div class="card">🧾 EPG</div>
-        <div class="card">🎬 VOD</div>
-        <div class="card">📺 SERIES</div>
     </div>
 </div>
 
 <!-- PLAYER -->
 <div id="playerScreen">
-
-    <div class="voltar" onclick="voltarHome()">⬅ VOLTAR</div>
-
     <div class="container">
-
-        <div class="sidebar" id="sidebar"></div>
-
-        <div class="player-area">
+        <div class="sidebar" id="lista"></div>
+        <div class="player">
             <video id="video" controls></video>
         </div>
-
     </div>
-
 </div>
 
 <script>
 
-const url = "https://dl.dropbox.com/scl/fi/nln0qvhqwt6fx0b57zoy2/sportLive.txt?dl=0";
+// 🔥 COLOQUE SEUS DADOS AQUI
+const server = "http://SEU_SERVIDOR:80";
+const user = "SEU_USUARIO";
+const pass = "SUA_SENHA";
 
 // NAV
-function abrirLive() {
-    document.getElementById("home").style.display = "none";
-    document.getElementById("playerScreen").style.display = "block";
-}
-
-function voltarHome() {
-    document.getElementById("home").style.display = "flex";
-    document.getElementById("playerScreen").style.display = "none";
+function abrirLive(){
+    document.getElementById("home").style.display="none";
+    document.getElementById("playerScreen").style.display="block";
+    carregarCategorias();
 }
 
 // PLAYER
-function play(url) {
-    const video = document.getElementById('video');
+function play(url){
+    const video = document.getElementById("video");
 
-    if (Hls.isSupported()) {
+    if(Hls.isSupported()){
         const hls = new Hls();
         hls.loadSource(url);
         hls.attachMedia(video);
@@ -191,102 +129,55 @@ function play(url) {
     }
 }
 
-// PARSE M3U
-function parseM3U(text) {
-    const linhas = text.split("\n");
-    let lista = [];
-    let canal = {};
+// CARREGAR CATEGORIAS
+function carregarCategorias(){
 
-    linhas.forEach(linha => {
-        linha = linha.trim();
+fetch(`${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`)
+.then(r=>r.json())
+.then(categorias=>{
 
-        if (linha.startsWith("#EXTINF")) {
+    const lista = document.getElementById("lista");
+    lista.innerHTML="";
 
-            const nome = linha.split(",")[1];
-            const grupo = (linha.match(/group-title="(.*?)"/) || [])[1] || "Canais";
-            const logo = (linha.match(/tvg-logo="(.*?)"/) || [])[1] || "";
+    categorias.forEach(cat=>{
 
-            canal = { nome, grupo, logo };
+        const div = document.createElement("div");
+        div.className="categoria";
+        div.innerText = cat.category_name;
 
-        } 
-        else if (linha.startsWith("http")) {
-            canal.url = linha;
-            lista.push(canal);
-        }
+        div.onclick = ()=> carregarCanais(cat.category_id);
+
+        lista.appendChild(div);
     });
 
-    return lista;
-}
-
-// AGRUPAR
-function agrupar(canais) {
-    const grupos = {};
-
-    canais.forEach(c => {
-        if (!grupos[c.grupo]) grupos[c.grupo] = [];
-        grupos[c.grupo].push(c);
-    });
-
-    return grupos;
-}
-
-// RENDER
-function render(canais) {
-
-    const sidebar = document.getElementById("sidebar");
-    sidebar.innerHTML = "";
-
-    const grupos = agrupar(canais);
-
-    Object.keys(grupos).forEach(nomeGrupo => {
-
-        const titulo = document.createElement("div");
-        titulo.className = "cat-titulo";
-        titulo.innerText = "📂 " + nomeGrupo;
-
-        const canaisDiv = document.createElement("div");
-        canaisDiv.style.display = "none";
-
-        titulo.onclick = () => {
-            canaisDiv.style.display =
-                canaisDiv.style.display === "block" ? "none" : "block";
-        };
-
-        grupos[nomeGrupo].forEach(c => {
-
-            const div = document.createElement("div");
-            div.className = "canal";
-
-            div.innerHTML = `
-                <img src="${c.logo || 'https://via.placeholder.com/40'}">
-                <span>${c.nome}</span>
-            `;
-
-            div.onclick = () => play(c.url);
-
-            canaisDiv.appendChild(div);
-        });
-
-        sidebar.appendChild(titulo);
-        sidebar.appendChild(canaisDiv);
-    });
-}
-
-// CONTROLE TV (clicar no player)
-document.getElementById("video").addEventListener("click", () => {
-    document.getElementById("sidebar").classList.toggle("hidden");
 });
+}
 
-// CARREGAR LISTA
-fetch(url)
-.then(res => res.text())
-.then(text => {
-    const canais = parseM3U(text);
-    render(canais);
-})
-.catch(() => {
-    document.getElementById("sidebar").innerHTML = "Erro ao carregar lista";
+// CARREGAR CANAIS
+function carregarCanais(catId){
+
+fetch(`${server}/player_api.php?username=${user}&password=${pass}&action=get_live_streams&category_id=${catId}`)
+.then(r=>r.json())
+.then(canais=>{
+
+    const lista = document.getElementById("lista");
+    lista.innerHTML="";
+
+    canais.forEach(c=>{
+
+        const urlStream = `${server}/live/${user}/${pass}/${c.stream_id}.m3u8`;
+
+        const div = document.createElement("div");
+        div.className="canal";
+        div.innerText = c.name;
+
+        div.onclick = ()=> play(urlStream);
+
+        lista.appendChild(div);
+    });
+
 });
+}
 
 </script>
 
